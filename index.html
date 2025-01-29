@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ค้นหาข้อมูล</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body>
+    <h2>ค้นหาข้อมูล</h2>
+    <input type="text" id="query" placeholder="กรอกคำค้นหา" />
+    <button onclick="searchData()">ค้นหา</button>
+    <div id="results"></div>
+
+    <script>
+        // ตั้งค่า LIFF
+        window.onload = function () {
+            liff.init({ liffId: "YOUR_LIFF_ID" })
+                .then(() => console.log("LIFF Initialized"))
+                .catch(err => console.error("LIFF Init Failed", err));
+        };
+
+        // ส่งข้อมูลไปยัง LINE Bot
+        function searchData() {
+            const query = document.getElementById("query").value;
+            if (!query) {
+                alert("กรุณากรอกคำค้นหา");
+                return;
+            }
+
+            // ใช้ LIFF ส่งข้อความไปยัง Chatbot
+            liff.sendMessages([
+                {
+                    type: "text",
+                    text: query
+                }
+            ]).then(() => {
+                alert("ส่งข้อความสำเร็จ!");
+                liff.closeWindow();  // ปิด LIFF หลังส่งข้อความ
+            }).catch(err => console.error("Error sending message:", err));
+        }
+    </script>
+</body>
+</html>
