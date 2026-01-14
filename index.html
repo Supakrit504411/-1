@@ -3,42 +3,507 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ค้นหาข้อมูล</title>
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <title>PEA Engineering Tools</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        /* CSS เดิม */
+        body { font-family: 'Sarabun', sans-serif; background-color: #f0f2f5; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        nav { background-color: #1a237e; width: 100%; padding: 0; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; justify-content: center; flex-wrap: wrap; }
+        nav button { background-color: transparent; color: #c5cae9; border: none; padding: 15px 20px; font-size: 16px; font-weight: 600; cursor: pointer; border-bottom: 4px solid transparent; transition: all 0.3s; flex-grow: 1; max-width: 200px; }
+        nav button:hover { color: white; background-color: rgba(255,255,255,0.1); }
+        nav button.active { color: white; border-bottom: 4px solid #ffca28; }
+        .container { background-color: white; padding: 30px; border-radius: 12px; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08); width: 90%; max-width: 500px; margin-top: 30px; margin-bottom: 30px; }
+        h2 { text-align: center; color: #333; margin-top: 0; padding-bottom: 15px; border-bottom: 1px solid #eee; }
+        .input-group { margin-bottom: 15px; } .input-row { display: flex; gap: 15px; margin-bottom: 15px; } .input-half { flex: 1; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; color: #444; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; box-sizing: border-box; background-color: #fff; }
+        .quick-btn-group { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
+        .quick-btn { flex: 1; min-width: 50px; padding: 8px; background-color: #e3f2fd; border: 1px solid #90caf9; color: #1565c0; border-radius: 20px; cursor: pointer; font-size: 14px; transition: 0.2s; text-align: center; }
+        button.calculate-btn { width: 100%; padding: 12px; background-color: #1a237e; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 15px; transition: background 0.3s; }
+        button:disabled { background-color: #ccc !important; cursor: not-allowed; }
+        .external-link-btn { display: block; width: 100%; text-align: center; padding: 10px; background-color: #ff9800; color: white; text-decoration: none; border-radius: 6px; margin-top: 15px; font-weight: bold; transition: background 0.3s; box-sizing: border-box;}
+        .result { margin-top: 25px; padding: 20px; background-color: #f8f9fa; border-left: 5px solid #1a237e; border-radius: 4px; display: none; }
+        .result p { margin: 8px 0; color: #333; font-size: 16px; }
+        .result strong { color: #d32f2f; font-size: 19px; }
+        .note { font-size: 13px; color: #555; margin-top: 15px; padding-top: 10px; border-top: 1px dashed #ccc; line-height: 1.6; }
+        .small-text { font-size: 13px; color: #555; font-weight: normal; }
+        .credit-box { margin-top: 12px; padding: 10px; border-top: 1px dashed #ccc; color: #1a237e; font-weight: 600; text-align: center; background-color: #e8eaf6; border-radius: 5px; }
+        
+        /* GPS Styles */
+        .gps-status { text-align: center; padding: 15px; background: #e3f2fd; border-radius: 8px; margin-bottom: 15px; border: 1px solid #90caf9; transition: background 0.3s;}
+        .gps-status.waiting { background: #fff3e0; border-color: #ffb74d; } /* สีเหลืองตอนรอสัญญาณ */
+        
+        .gps-val { font-size: 24px; font-weight: bold; color: #1565c0; display: block; margin: 5px 0;}
+        .gps-label { font-size: 14px; color: #555; }
+        .recording-dot { height: 12px; width: 12px; background-color: #bbb; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        .recording-dot.active { background-color: red; animation: blink 1s infinite; }
+        .recording-dot.waiting { background-color: orange; animation: blink 0.5s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        .history-list { margin-top: 20px; border-top: 2px solid #eee; padding-top: 15px; }
+        .history-item { background: #fff; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; border-radius: 6px; display: flex; flex-direction:column; gap:10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: relative;}
+        .history-info { font-size: 15px; color: #333; font-weight:bold;}
+        .history-meta { font-size: 12px; color: #777; }
+        .history-actions { display:flex; gap:5px; width:100%;}
+        .history-actions button { flex:1; padding: 8px; font-size: 13px; border-radius: 4px; cursor: pointer; border: none; color: white; display:flex; justify-content:center; align-items:center;}
+        .upload-status { font-size: 12px; color: #2e7d32; font-weight: bold; position: absolute; top: 10px; right: 10px; display: none;}
+        
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
+        .modal-content { background-color: white; padding: 20px; border-radius: 8px; width: 80%; max-width: 300px; text-align: center; }
+        .modal input { margin: 15px 0; text-align: center; letter-spacing: 5px; font-weight: bold; }
+        
+        footer { margin-top: auto; margin-bottom: 20px; color: #777; font-size: 14px; text-align: center; font-weight: 600; }
+        .tab-content { display: none; animation: fadeIn 0.4s; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
 </head>
 <body>
-    <h2>ค้นหาข้อมูล</h2>
-    <input type="text" id="query" placeholder="กรอกคำค้นหา" />
-    <button onclick="searchData()">ค้นหา</button>
-    <div id="results"></div>
+
+    <nav>
+        <button onclick="openTab('ampToUnit')" id="btn-ampToUnit" class="active">1. แปลง Amp</button>
+        <button onclick="openTab('solarRoof')" id="btn-solarRoof">2. Solar Roof</button>
+        <button onclick="openTab('gpsSurvey')" id="btn-gpsSurvey">3. สำรวจเส้นทาง</button>
+    </nav>
+
+    <div class="container">
+        <div id="ampToUnit" class="tab-content active">
+             <h2>ประเมินหน่วยไฟฟ้า (Amp)</h2>
+            <label>เลือกพิกัดกระแสด่วน:</label>
+            <div class="quick-btn-group">
+                <button class="quick-btn" onclick="setAmp(1)">1A</button>
+                <button class="quick-btn" onclick="setAmp(5)">5A</button>
+                <button class="quick-btn" onclick="setAmp(15)">15A</button>
+                <button class="quick-btn" onclick="setAmp(30)">30A</button>
+            </div>
+            <div class="input-row">
+                <div class="input-half"><label>P.F.:</label><input type="number" id="inputPF" value="0.85" step="0.01" oninput="reCalcAll()"></div>
+                <div class="input-half"><label>L.F.:</label><input type="number" id="inputLF" value="0.5" step="0.1" oninput="reCalcAll()"></div>
+            </div>
+            <div class="input-group">
+                <label>หรือ เลือกขนาดหม้อแปลง:</label>
+                <select id="trafoSelect" onchange="selectTrafo()">
+                    <option value="0">-- ไม่เลือก (กรอกเอง) --</option>
+                    <optgroup label="1 เฟส (Single Phase)">
+                        <option value="30_1">30 kVA (1 Phase)</option>
+                    </optgroup>
+                    <optgroup label="3 เฟส (3 Phase)">
+                        <option value="50_3">50 kVA</option>
+                        <option value="100_3">100 kVA</option>
+                        <option value="160_3">160 kVA</option>
+                        <option value="250_3">250 kVA</option>
+                        <option value="315_3">315 kVA</option>
+                        <option value="400_3">400 kVA</option>
+                        <option value="500_3">500 kVA</option>
+                        <option value="630_3">630 kVA</option>
+                        <option value="800_3">800 kVA</option>
+                        <option value="1000_3">1000 kVA</option>
+                    </optgroup>
+                </select>
+            </div>
+            <div class="input-group"><label>กระแสไฟฟ้า (Amps/Phase):</label><input type="number" id="ampInput" value="1" oninput="calculateAmp()"></div>
+            <button class="calculate-btn" onclick="calculateAmp()">คำนวณ</button>
+            <div id="result-amp" class="result" style="display:block;">
+                <p>⚡ ปริมาณการใช้ไฟ:</p>
+                <p>• <strong><span id="ampResultPhase">0</span> หน่วย/เดือน/เฟส</strong></p>
+                <div id="threePhaseSummary" style="display:none; margin-top:10px; padding-top:10px; border-top:1px solid #ddd;">
+                    <p>⚡ รวม 3 เฟส (โดยประมาณ):</p><p style="color:#1a237e;"><strong><span id="ampResultTotal">0</span> หน่วย/เดือน</strong></p>
+                </div>
+                <div class="note">
+                    *สูตร Manual: 1A ≈ 70 หน่วย (ปรับตาม PF, LF)<br>
+                    *สูตรหม้อแปลง: <strong>10 kVA ≈ 3,000 หน่วย</strong> (ปรับตาม PF, LF)<br>
+                    <div class="credit-box">"แนวทางประเมินที่สะดวก รวดเร็ว และเข้าใจง่าย<br>โดย ท่าน ผชก.ฉ.1"</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="solarRoof" class="tab-content">
+             <h2>ประเมิน Solar Rooftop</h2>
+            <label>เลือกขนาดติดตั้งด่วน (kW):</label>
+            <div class="quick-btn-group">
+                <button class="quick-btn" onclick="setSolar(1)">1kW</button>
+                <button class="quick-btn" onclick="setSolar(3)">3kW</button>
+                <button class="quick-btn" onclick="setSolar(5)">5kW</button>
+                <button class="quick-btn" onclick="setSolar(10)">10kW</button>
+                <button class="quick-btn" onclick="setSolar(20)">20kW</button>
+            </div>
+            <div class="input-group"><label>ขนาดติดตั้ง (kW):</label><input type="number" id="solarSize" value="1" oninput="calculateSolar()"></div>
+            <button class="calculate-btn" onclick="calculateSolar()">คำนวณ</button>
+            <div id="result-solar" class="result" style="display:block;">
+                <p>☀️ Peak Sun Hour: <strong>4 ชั่วโมง/วัน</strong></p>
+                <hr style="border:0; border-top:1px solid #ddd; margin:10px 0;">
+                <p>⚡ ผลิตไฟได้ (วัน): <strong id="solarDay">4</strong> หน่วย</p>
+                <p>⚡ ผลิตไฟได้ (เดือน): <strong id="solarMonth">120</strong> หน่วย</p>
+                <p>💰 ลดค่าไฟได้เดือนละ: <strong id="solarMoney">500</strong> บาท <br><span class="small-text" style="color:#e65100;">(*คำนวณรวม Loss ในระบบแล้ว 1kW ลดได้ ~500 บาท)</span></p>
+                <a href="https://peasolar.pea.co.th/our-products/" target="_blank" class="external-link-btn">ดูผลิตภัณฑ์ PEA Solar คลิกที่นี่</a>
+                <div class="note"><div class="credit-box">"แนวทางประเมินที่สะดวก รวดเร็ว และเข้าใจง่าย<br>โดย ท่าน ผชก.ฉ.1"</div></div>
+            </div>
+        </div>
+
+        <div id="gpsSurvey" class="tab-content">
+            <h2>สำรวจเส้นทาง (GPS Track)</h2>
+            
+            <div id="gpsBox" class="gps-status">
+                <span id="recordingDot" class="recording-dot"></span> 
+                <span id="gpsStatusText">พร้อมเริ่มสำรวจ</span>
+                <hr style="border:0; border-top:1px solid #90caf9; margin:10px 0;">
+                <div style="display:flex; justify-content:space-between;">
+                    <div style="flex:1;">
+                        <span class="gps-label">ระยะทาง (ม.)</span>
+                        <span class="gps-val" id="displayDistance">0</span>
+                    </div>
+                    <div style="flex:1; border-left:1px solid #ccc;">
+                        <span class="gps-label">ความแม่นยำ (ม.)</span>
+                        <span class="gps-val" id="displayAccuracy" style="font-size:18px; color:#555;">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>ชื่อเส้นทาง (ชื่อโฟลเดอร์):</label>
+                <input type="text" id="trackName" placeholder="เช่น สายป้อนบ้านดอน">
+            </div>
+
+            <div class="input-group">
+                <label>ผู้สำรวจ:</label>
+                <input list="surveyorList" id="surveyorName" placeholder="เลือก หรือ พิมพ์ชื่อใหม่...">
+                <datalist id="surveyorList">
+                    </datalist>
+            </div>
+
+            <div style="display:flex; gap:10px;">
+                <button class="calculate-btn" id="btnStartGPS" onclick="toggleGPS()" style="background-color: #2e7d32; margin-top:0;">
+                    ▶ เริ่ม
+                </button>
+                <button class="calculate-btn" id="btnSaveTrack" onclick="saveTrack()" style="background-color: #1976d2; margin-top:0; display:none;">
+                    💾 บันทึกและส่ง
+                </button>
+            </div>
+
+            <div class="history-list" id="savedListContainer" style="display:none;">
+                <h3 style="margin-top:0; color:#555; font-size:16px;">📂 ประวัติเส้นทางที่บันทึกไว้</h3>
+                <div id="savedRoutesList"></div>
+                <div class="note" style="text-align:center; color:#d32f2f; cursor:pointer;" onclick="initDelete('all', null)">
+                    [ล้างประวัติทั้งหมด]
+                </div>
+            </div>
+
+            <div class="note">
+                *ระบบจะแจ้งเตือน "รอสัญญาณ" หาก GPS ยังไม่นิ่ง<br>
+                *รายชื่อผู้สำรวจใหม่จะถูกบันทึกลงระบบอัตโนมัติ
+            </div>
+        </div>
+    </div>
+
+    <div id="passwordModal" class="modal">
+        <div class="modal-content">
+            <h3>🔒 ยืนยันรหัสผ่าน</h3>
+            <p>กรุณาใส่รหัสผ่านเพื่อลบข้อมูล</p>
+            <input type="password" id="adminPassword" placeholder="PIN" inputmode="numeric">
+            <div style="display:flex; gap:10px;">
+                <button class="calculate-btn" style="background:#ccc; color:#333;" onclick="closeModal()">ยกเลิก</button>
+                <button class="calculate-btn" id="btnConfirmDelete">ยืนยัน</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>Developed by ชผ.บส.กฟจ.นพ.</footer>
 
     <script>
-        // ตั้งค่า LIFF
-        window.onload = function () {
-            liff.init({ liffId: "2006772952-pxMLlYMG" })
-                .then(() => console.log("LIFF Initialized"))
-                .catch(err => console.error("LIFF Init Failed", err));
-        };
+        // *** ใส่ URL Script ใหม่ตรงนี้ ***
+        var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw9LqjHRaZcJ8PXUQAwX5E9jo391wUDiQhEexn-JBk2VdSPoetYWKihID8t2tg1uaJV/exec"; 
 
-        // ส่งข้อมูลไปยัง LINE Bot
-        function searchData() {
-            const query = document.getElementById("query").value;
-            if (!query) {
-                alert("กรุณากรอกคำค้นหา");
-                return;
+        function openTab(tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) { tabcontent[i].className = tabcontent[i].className.replace(" active", ""); }
+            tablinks = document.getElementsByTagName("button");
+            for (i = 0; i < tablinks.length; i++) { tablinks[i].classList.remove("active"); }
+            document.getElementById(tabName).className += " active";
+            if(document.getElementById("btn-" + tabName)) document.getElementById("btn-" + tabName).classList.add("active");
+            
+            if(tabName === 'gpsSurvey') {
+                loadSavedTracks();
+                fetchSurveyors(); // โหลดรายชื่อ
             }
-
-            // ใช้ LIFF ส่งข้อความไปยัง Chatbot
-            liff.sendMessages([
-                {
-                    type: "text",
-                    text: query
-                }
-            ]).then(() => {
-                alert("ส่งข้อความสำเร็จ!");
-                liff.closeWindow();  // ปิด LIFF หลังส่งข้อความ
-            }).catch(err => console.error("Error sending message:", err));
         }
+        
+        // --- Amp & Solar Logic ---
+        function reCalcAll() { if (document.getElementById('trafoSelect').value !== "0") selectTrafo(); else calculateAmp(); }
+        function setAmp(val) { document.getElementById('ampInput').value = val; document.getElementById('trafoSelect').value = "0"; calculateAmp(); }
+        function selectTrafo() {
+            var val = document.getElementById('trafoSelect').value;
+            if (val === "0") return;
+            var pf = parseFloat(document.getElementById('inputPF').value)||0.85; var lf = parseFloat(document.getElementById('inputLF').value)||0.5;
+            var kva=0; var amps=0; var is3=false;
+            if (val === "30_1") { kva=30; amps=130; is3=false; }
+            else { kva=parseInt(val.split('_')[0]); amps=Math.round((kva*1000)/(1.732*400)); is3=true; }
+            var totalUnits = kva * 300 * (pf/0.85) * (lf/0.5);
+            document.getElementById('ampInput').value = amps; displayUnits(totalUnits, is3);
+        }
+        function calculateAmp() {
+            var amp = parseFloat(document.getElementById('ampInput').value);
+            if (isNaN(amp)) { document.getElementById('ampResultPhase').innerText="0"; return; }
+            if (document.getElementById('trafoSelect').value === "0") {
+                var pf = parseFloat(document.getElementById('inputPF').value)||0.85; var lf = parseFloat(document.getElementById('inputLF').value)||0.5;
+                var units = (amp*70)*(pf/0.85)*(lf/0.5);
+                document.getElementById('ampResultPhase').innerText = Math.round(units).toLocaleString();
+                document.getElementById('threePhaseSummary').style.display = "none";
+            }
+        }
+        function displayUnits(total, is3) {
+            var rounded = (total>10000) ? Math.round(total/1000)*1000 : Math.round(total/100)*100;
+            if (is3) {
+                var perPhase = rounded/3; perPhase = (perPhase>1000) ? Math.round(perPhase/100)*100 : Math.round(perPhase/10)*10;
+                document.getElementById('ampResultPhase').innerText = perPhase.toLocaleString();
+                document.getElementById('ampResultTotal').innerText = rounded.toLocaleString();
+                document.getElementById('threePhaseSummary').style.display = "block";
+            } else {
+                document.getElementById('ampResultPhase').innerText = rounded.toLocaleString();
+                document.getElementById('threePhaseSummary').style.display = "none";
+            }
+        }
+        function setSolar(val) { document.getElementById('solarSize').value=val; calculateSolar(); }
+        function calculateSolar() {
+            var size = parseFloat(document.getElementById('solarSize').value);
+            if (isNaN(size)||size<0) return;
+            document.getElementById('solarDay').innerText = (size*4).toLocaleString(undefined,{maximumFractionDigits:1});
+            document.getElementById('solarMonth').innerText = (size*120).toLocaleString(undefined,{maximumFractionDigits:0});
+            document.getElementById('solarMoney').innerText = (size*500).toLocaleString();
+        }
+
+
+        // --- GPS Logic & Waiting Alert ---
+        var watchID = null; var trackPoints = []; var totalDist = 0; var lastLat = null, lastLon = null;
+        
+        function toggleGPS() {
+            var btn = document.getElementById('btnStartGPS'); var saveBtn = document.getElementById('btnSaveTrack');
+            var statusText = document.getElementById('gpsStatusText'); var dot = document.getElementById('recordingDot');
+            var gpsBox = document.getElementById('gpsBox');
+
+            if (watchID === null) {
+                if (!navigator.geolocation) { alert("อุปกรณ์ไม่รองรับ GPS"); return; }
+                trackPoints = []; totalDist = 0; lastLat = null; lastLon = null;
+                document.getElementById('displayDistance').innerText = "0";
+                saveBtn.style.display = "none";
+
+                watchID = navigator.geolocation.watchPosition(updatePosition, handleError, { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 });
+
+                btn.innerText = "⏹ หยุดบันทึก"; btn.style.backgroundColor = "#c62828";
+                // Default Status
+                statusText.innerText = "กำลังค้นหาสัญญาณ..."; statusText.style.color = "#f57c00";
+                dot.className = "recording-dot waiting";
+                gpsBox.className = "gps-status waiting";
+            } else {
+                navigator.geolocation.clearWatch(watchID); watchID = null;
+                btn.innerText = "▶ เริ่มใหม่"; btn.style.backgroundColor = "#2e7d32";
+                statusText.innerText = "บันทึกเสร็จสิ้น"; statusText.style.color = "#333";
+                dot.className = "recording-dot";
+                gpsBox.className = "gps-status";
+                
+                if (trackPoints.length > 0) saveBtn.style.display = "block";
+            }
+        }
+
+        function updatePosition(position) {
+            var lat = position.coords.latitude; var lon = position.coords.longitude; var acc = position.coords.accuracy;
+            document.getElementById('displayAccuracy').innerText = "±" + Math.round(acc);
+            
+            // Logic แจ้งเตือนความแม่นยำ
+            var statusText = document.getElementById('gpsStatusText');
+            var dot = document.getElementById('recordingDot');
+            var gpsBox = document.getElementById('gpsBox');
+
+            if (watchID !== null) {
+                if (acc > 20) {
+                    // สัญญาณอ่อน
+                    statusText.innerText = "สัญญาณอ่อน (รอสักครู่...)"; 
+                    statusText.style.color = "#e65100";
+                    dot.className = "recording-dot waiting";
+                    gpsBox.className = "gps-status waiting";
+                } else {
+                    // สัญญาณดี
+                    statusText.innerText = "กำลังบันทึกพิกัด..."; 
+                    statusText.style.color = "#2e7d32";
+                    dot.className = "recording-dot active";
+                    gpsBox.className = "gps-status";
+                    
+                    // คำนวณระยะทางเฉพาะเมื่อสัญญาณดี
+                    if (lastLat != null) {
+                        var d = calcDist(lastLat, lastLon, lat, lon);
+                        totalDist += d; document.getElementById('displayDistance').innerText = totalDist.toFixed(0);
+                    }
+                    lastLat = lat; lastLon = lon; trackPoints.push([lon, lat]);
+                }
+            }
+        }
+        function handleError(error) { console.warn(error.message); }
+        function calcDist(lat1, lon1, lat2, lon2) {
+            var R = 6371e3; var φ1 = lat1 * Math.PI/180; var φ2 = lat2 * Math.PI/180;
+            var Δφ = (lat2-lat1) * Math.PI/180; var Δλ = (lon2-lon1) * Math.PI/180;
+            var a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); return R * c;
+        }
+
+        // --- Fetch Surveyors ---
+        function fetchSurveyors() {
+            fetch(SCRIPT_URL, {
+                method: 'POST', mode: 'cors',
+                headers: {'Content-Type': 'text/plain;charset=utf-8'},
+                body: JSON.stringify({ action: 'get_surveyors' })
+            })
+            .then(res => res.json())
+            .then(data => {
+                var list = document.getElementById('surveyorList');
+                list.innerHTML = "";
+                data.names.forEach(name => {
+                    var opt = document.createElement('option');
+                    opt.value = name;
+                    list.appendChild(opt);
+                });
+            });
+        }
+
+        // --- Save & Upload ---
+        function saveTrack() {
+            var name = document.getElementById('trackName').value || "เส้นทางสำรวจ";
+            var surveyor = document.getElementById('surveyorName').value || "";
+            
+            var now = new Date();
+            var dateStr = now.toLocaleDateString('th-TH') + " " + now.toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'});
+            var safeDate = dateStr.replace(/[: \/]/g, '-');
+            
+            var newTrack = { id: Date.now(), name: name, surveyor: surveyor, date: dateStr, dist: totalDist, points: trackPoints, uploaded: false };
+            
+            var savedTracks = JSON.parse(localStorage.getItem('pea_gps_tracks') || "[]");
+            savedTracks.push(newTrack);
+            localStorage.setItem('pea_gps_tracks', JSON.stringify(savedTracks));
+            
+            var btn = document.getElementById('btnSaveTrack');
+            btn.innerText = "⏳ กำลังส่งเข้า Drive..."; btn.disabled = true;
+
+            var kmlContent = genKML(newTrack);
+
+            fetch(SCRIPT_URL, {
+                method: 'POST', mode: 'cors',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({
+                    action: 'upload',
+                    folderName: newTrack.name,
+                    filename: newTrack.name + "_" + safeDate + ".kml",
+                    content: kmlContent,
+                    surveyor: surveyor // ส่งชื่อผู้สำรวจไปบันทึกด้วย
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'success') {
+                    alert("✅ บันทึกสำเร็จ!");
+                    markAsUploaded(newTrack.id);
+                } else alert("⚠ ส่งไม่สำเร็จ: " + data.message);
+            })
+            .finally(() => {
+                btn.style.display = "none"; btn.innerText = "💾 บันทึกและส่ง"; btn.disabled = false;
+                loadSavedTracks();
+                fetchSurveyors(); // รีโหลดรายชื่อ เผื่อมีชื่อใหม่
+            });
+        }
+
+        function markAsUploaded(id) {
+            var savedTracks = JSON.parse(localStorage.getItem('pea_gps_tracks') || "[]");
+            var track = savedTracks.find(t => t.id === id);
+            if(track) track.uploaded = true;
+            localStorage.setItem('pea_gps_tracks', JSON.stringify(savedTracks));
+            loadSavedTracks();
+        }
+
+        function loadSavedTracks() {
+            var savedTracks = JSON.parse(localStorage.getItem('pea_gps_tracks') || "[]");
+            var container = document.getElementById('savedRoutesList');
+            var listContainer = document.getElementById('savedListContainer');
+            container.innerHTML = "";
+            if (savedTracks.length === 0) { listContainer.style.display = "none"; return; }
+            listContainer.style.display = "block";
+            
+            // Loop with Numbering
+            for (var i = savedTracks.length - 1; i >= 0; i--) {
+                var t = savedTracks[i];
+                var uploadStatus = t.uploaded ? '<span style="color:#2e7d32;">✔ Cloud</span>' : '<span style="color:#f57f17;">⚠ Local</span>';
+                var number = (savedTracks.length - i); // ลำดับที่
+                var surveyorInfo = t.surveyor ? ` | 👤 ${t.surveyor}` : "";
+
+                var html = `
+                <div class="history-item">
+                    <div class="upload-status" style="display:block;">${uploadStatus}</div>
+                    <div>
+                        <div class="history-info">${number}. ${t.name} <span style="font-weight:normal; font-size:13px;">(${t.dist.toFixed(0)} ม.)</span></div>
+                        <div class="history-meta">${t.date} | ${t.points.length} จุด${surveyorInfo}</div>
+                    </div>
+                    <div class="history-actions">
+                        <button onclick="exportSingleTrack(${t.id})" style="background-color:#ff9800;">⬇ KML</button>
+                        <button onclick="initDelete('single', ${t.id})" style="background-color:#d32f2f;">🗑 ลบ</button>
+                    </div>
+                </div>`;
+                container.innerHTML += html;
+            }
+        }
+
+        function exportSingleTrack(id) {
+            var savedTracks = JSON.parse(localStorage.getItem('pea_gps_tracks') || "[]");
+            var track = savedTracks.find(t => t.id === id);
+            if (!track) return;
+            var kmlContent = genKML(track);
+            var blob = new Blob([kmlContent], { type: 'application/vnd.google-earth.kml+xml' });
+            var url = URL.createObjectURL(blob);
+            var link = document.createElement('a'); link.href = url; link.download = track.name + ".kml";
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        }
+
+        function genKML(track) {
+            var desc = `Surveyor: ${track.surveyor || '-'}`;
+            var k = `<?xml version="1.0" encoding="UTF-8"?><kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>${track.name}</name><description>${desc}</description><Style id="lineStyle"><LineStyle><color>ff0000ff</color><width>4</width></LineStyle></Style><Placemark><name>${track.name}</name><styleUrl>#lineStyle</styleUrl><LineString><tessellate>1</tessellate><coordinates>`;
+            for (var i = 0; i < track.points.length; i++) { k += track.points[i][0] + "," + track.points[i][1] + ",0 "; }
+            k += `</coordinates></LineString></Placemark></Document></kml>`;
+            return k;
+        }
+
+        // --- Secure Delete ---
+        var deleteTargetId = null; var deleteMode = null;
+        function initDelete(mode, id) {
+            deleteMode = mode; deleteTargetId = id;
+            document.getElementById('adminPassword').value = "";
+            document.getElementById('passwordModal').style.display = "flex";
+            document.getElementById('adminPassword').focus();
+        }
+        function closeModal() { document.getElementById('passwordModal').style.display = "none"; }
+        document.getElementById('btnConfirmDelete').onclick = function() {
+            var pass = document.getElementById('adminPassword').value;
+            var btn = document.getElementById('btnConfirmDelete');
+            if(!pass) return;
+            btn.innerText = "Checking..."; btn.disabled = true;
+
+            fetch(SCRIPT_URL, {
+                method: 'POST', mode: 'cors',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ action: 'check_pass', password: pass })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.valid) { performDelete(); closeModal(); } else alert("❌ รหัสผิด");
+            })
+            .finally(() => { btn.innerText = "ยืนยัน"; btn.disabled = false; });
+        };
+        function performDelete() {
+            if (deleteMode === 'all') localStorage.removeItem('pea_gps_tracks');
+            else {
+                var savedTracks = JSON.parse(localStorage.getItem('pea_gps_tracks') || "[]");
+                savedTracks = savedTracks.filter(t => t.id !== deleteTargetId);
+                localStorage.setItem('pea_gps_tracks', JSON.stringify(savedTracks));
+            }
+            loadSavedTracks();
+        }
+        
+        window.onload = function() { calculateAmp(); calculateSolar(); };
     </script>
 </body>
 </html>
